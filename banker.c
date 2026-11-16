@@ -1,396 +1,337 @@
-/*
- * banker.c - Algoritmo do Banqueiro (Banker's Algorithm)
- * Infraestrutura de Software - CESAR School
- *
- * Uso: ./banker <instancias_r0> <instancias_r1> ... <instancias_rN>
- * Entradas: customer.txt (maximo de cada cliente) e commands.txt (RQ, RL, *)
- * Saida:    result.txt
- */
+// Algoritmo do Banqueiro - Infra de Software
+// Eduardo Boxwell Simoes (ebs2)
+//
+// compilar: make
+// rodar: ./banker 10 5 7  (cada numero eh a qtd de instancias de um recurso)
+// le customer.txt e commands.txt e escreve tudo no result.txt
 
-#define _POSIX_C_SOURCE 200809L
-
-#include <errno.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#define CUSTOMER_FILE "customer.txt"
-#define COMMANDS_FILE "commands.txt"
-#define RESULT_FILE   "result.txt"
+#define TAM_LINHA 1024
 
-typedef enum { CMD_RQ, CMD_RL, CMD_PRINT } CommandType;
+int num_recursos = 0;
+int num_clientes = 0;
 
+int *disponivel;
+int **maximo;
+int **alocado;
+int **necessidade;
+
+// os comandos ficam guardados pra eu validar o arquivo todo antes de rodar
 typedef struct {
-    CommandType type;
-    int customer;
-    int *resources;
-} Command;
+    char tipo;   // 'Q' = RQ, 'L' = RL, '*' = imprime
+    int cliente;
+    int *valores;
+} Comando;
 
-/* Estado global do banqueiro */
-static int n_resources = 0;     /* NUMBER_OF_RESOURCES */
-static int n_customers = 0;     /* NUMBER_OF_CUSTOMERS */
-static int *available = NULL;   /* available[m] */
-static int **maximum = NULL;    /* maximum[n][m] */
-static int **allocation = NULL; /* allocation[n][m] */
-static int **need = NULL;       /* need[n][m] */
+Comando *comandos = NULL;
+int num_comandos = 0;
 
-static Command *commands = NULL;
-static int n_commands = 0;
 
-/* ------------------------------------------------------------------ */
-/* Utilitarios                                                         */
-/* ------------------------------------------------------------------ */
+void erro(char *msg, int linha) {
+    if (linha > 0)
+        fprintf(stderr, "Erro: %s (linha %d)\n", msg, linha);
+    else
+        fprintf(stderr, "Erro: %s\n", msg);
+    exit(1);
+}
 
-static void free_all(void) {
-    int i;
-    for (i = 0; i < n_customers; i++) {
-        if (maximum) free(maximum[i]);
-        if (allocation) free(allocation[i]);
-        if (need) free(need[i]);
+// 1 se a string tiver so digitos
+int eh_numero(char *s) {
+    if (s == NULL || s[0] == '\0') return 0;
+    if (strlen(s) > 9) return 0; // numero grande demais, nao cabe no int
+    for (int i = 0; s[i] != '\0'; i++) {
+        if (s[i] < '0' || s[i] > '9') return 0;
     }
-    free(maximum);
-    free(allocation);
-    free(need);
-    free(available);
-    for (i = 0; i < n_commands; i++) free(commands[i].resources);
-    free(commands);
-}
-
-/* Imprime a mensagem de erro, libera a memoria e encerra o programa */
-static void fail(const char *fmt, const char *arg, int line) {
-    fprintf(stderr, "Error: ");
-    fprintf(stderr, fmt, arg);
-    if (line > 0) fprintf(stderr, " (line %d)", line);
-    fprintf(stderr, "\n");
-    free_all();
-    exit(EXIT_FAILURE);
-}
-
-static void *xmalloc(size_t size) {
-    void *p = malloc(size);
-    if (p == NULL) fail("%s", "out of memory", 0);
-    return p;
-}
-
-/* Converte uma string inteira para um inteiro >= 0. Retorna 0 se invalida. */
-static int parse_non_negative(const char *s, int *out) {
-    char *end;
-    long v;
-    if (s == NULL || *s == '\0') return 0;
-    if (*s == '+' || *s == '-') return 0; /* apenas digitos */
-    errno = 0;
-    v = strtol(s, &end, 10);
-    if (errno != 0 || *end != '\0' || v < 0 || v > INT_MAX) return 0;
-    *out = (int)v;
     return 1;
 }
 
-/* Remove '\n' e '\r' do final da linha (aceita arquivos criados no Windows) */
-static void strip_newline(char *s) {
-    size_t len = strlen(s);
-    while (len > 0 && (s[len - 1] == '\n' || s[len - 1] == '\r')) s[--len] = '\0';
+// tira o \n (e o \r de arquivo feito no windows)
+void tira_quebra(char *s) {
+    int n = strlen(s);
+    while (n > 0 && (s[n-1] == '\n' || s[n-1] == '\r')) {
+        s[n-1] = '\0';
+        n--;
+    }
 }
 
-static int is_blank(const char *s) {
+int linha_vazia(char *s) {
     while (*s == ' ' || *s == '\t') s++;
     return *s == '\0';
 }
 
-static void print_vector(FILE *out, const int *v) {
-    int j;
-    for (j = 0; j < n_resources; j++) fprintf(out, j == 0 ? "%d" : " %d", v[j]);
+void imprime_vetor(FILE *f, int *v) {
+    for (int j = 0; j < num_recursos; j++) {
+        if (j > 0) fprintf(f, " ");
+        fprintf(f, "%d", v[j]);
+    }
 }
 
-/* ------------------------------------------------------------------ */
-/* Leitura e validacao das entradas                                    */
-/* ------------------------------------------------------------------ */
 
-static void parse_arguments(int argc, char *argv[]) {
-    int j;
+void le_argumentos(int argc, char *argv[]) {
     if (argc < 2)
-        fail("%s", "usage: ./banker <instances of each resource> (e.g. ./banker 10 5 7)", 0);
-    n_resources = argc - 1;
-    available = xmalloc(sizeof(int) * n_resources);
-    for (j = 0; j < n_resources; j++) {
-        if (!parse_non_negative(argv[j + 1], &available[j]))
-            fail("invalid argument '%s': resource instances must be a non-negative integer",
-                 argv[j + 1], 0);
+        erro("uso: ./banker <instancias de cada recurso>, ex: ./banker 10 5 7", 0);
+
+    num_recursos = argc - 1;
+    disponivel = malloc(num_recursos * sizeof(int));
+
+    for (int j = 0; j < num_recursos; j++) {
+        if (!eh_numero(argv[j+1])) {
+            fprintf(stderr, "Erro: argumento '%s' invalido, tem que ser um inteiro >= 0\n", argv[j+1]);
+            exit(1);
+        }
+        disponivel[j] = atoi(argv[j+1]);
     }
 }
 
-static void read_customers(void) {
-    FILE *f = fopen(CUSTOMER_FILE, "r");
-    char *line = NULL;
-    size_t cap = 0;
-    int line_no = 0, blank_seen = 0, capacity = 0;
+void le_clientes() {
+    FILE *f = fopen("customer.txt", "r");
+    if (f == NULL) erro("nao consegui abrir o customer.txt", 0);
 
-    if (f == NULL) fail("could not open file '%s'", CUSTOMER_FILE, 0);
+    char linha[TAM_LINHA];
+    int nlinha = 0;
+    int teve_vazia = 0;
 
-    while (getline(&line, &cap, f) != -1) {
-        char *tok, *save, *p;
-        int *row, count = 0, commas = 0;
+    while (fgets(linha, TAM_LINHA, f) != NULL) {
+        nlinha++;
+        tira_quebra(linha);
 
-        line_no++;
-        strip_newline(line);
-        if (is_blank(line)) { blank_seen = 1; continue; } /* so aceito no final */
-        if (blank_seen) {
-            free(line); fclose(f);
-            fail("invalid format in '%s': empty line between customers", CUSTOMER_FILE, line_no - 1);
+        // linha vazia so pode no final do arquivo
+        if (linha_vazia(linha)) {
+            teve_vazia = 1;
+            continue;
         }
+        if (teve_vazia) erro("customer.txt tem linha vazia no meio dos clientes", nlinha - 1);
 
-        /* conta virgulas para detectar campos vazios, ex.: "7,,3" ou "7,5,3," */
-        for (p = line; *p; p++) if (*p == ',') commas++;
+        // n recursos = n-1 virgulas
+        int virgulas = 0;
+        for (int i = 0; linha[i] != '\0'; i++)
+            if (linha[i] == ',') virgulas++;
+        if (virgulas != num_recursos - 1)
+            erro("quantidade de recursos no customer.txt nao bate com a quantidade de argumentos", nlinha);
 
-        row = xmalloc(sizeof(int) * n_resources);
-        for (tok = strtok_r(line, ",", &save); tok; tok = strtok_r(NULL, ",", &save)) {
-            /* remove espacos em volta do numero */
-            char *end;
-            while (*tok == ' ' || *tok == '\t') tok++;
-            end = tok + strlen(tok);
-            while (end > tok && (end[-1] == ' ' || end[-1] == '\t')) *--end = '\0';
-
-            if (count >= n_resources) { count++; break; }
-            if (!parse_non_negative(tok, &row[count])) {
-                free(row); free(line); fclose(f);
-                fail("invalid format in '%s': values must be non-negative integers separated by commas",
-                     CUSTOMER_FILE, line_no);
-            }
-            count++;
+        int *linha_max = malloc(num_recursos * sizeof(int));
+        int qtd = 0;
+        char *tok = strtok(linha, ",");
+        while (tok != NULL) {
+            if (!eh_numero(tok))
+                erro("formato invalido no customer.txt, era pra ser so numeros separados por virgula", nlinha);
+            linha_max[qtd] = atoi(tok);
+            qtd++;
+            tok = strtok(NULL, ",");
         }
-        if (count != n_resources || commas != n_resources - 1) {
-            free(row); free(line); fclose(f);
-            fail("number of resources in '%s' does not match the number of command line arguments",
-                 CUSTOMER_FILE, line_no);
-        }
+        // se tiver campo vazio tipo "7,,3" o strtok pula e vem menos numero
+        if (qtd != num_recursos)
+            erro("formato invalido no customer.txt, tem campo vazio", nlinha);
 
-        if (n_customers == capacity) {
-            capacity = capacity ? capacity * 2 : 8;
-            maximum = realloc(maximum, sizeof(int *) * capacity);
-            allocation = realloc(allocation, sizeof(int *) * capacity);
-            need = realloc(need, sizeof(int *) * capacity);
-            if (!maximum || !allocation || !need) fail("%s", "out of memory", 0);
-        }
-        maximum[n_customers] = row;
-        allocation[n_customers] = calloc(n_resources, sizeof(int));
-        need[n_customers] = xmalloc(sizeof(int) * n_resources);
-        if (!allocation[n_customers]) fail("%s", "out of memory", 0);
-        memcpy(need[n_customers], row, sizeof(int) * n_resources);
-        n_customers++;
+        // aumenta as matrizes em 1 cliente
+        maximo = realloc(maximo, (num_clientes + 1) * sizeof(int *));
+        alocado = realloc(alocado, (num_clientes + 1) * sizeof(int *));
+        necessidade = realloc(necessidade, (num_clientes + 1) * sizeof(int *));
+
+        maximo[num_clientes] = linha_max;
+        alocado[num_clientes] = calloc(num_recursos, sizeof(int)); // comeca tudo zerado
+        necessidade[num_clientes] = malloc(num_recursos * sizeof(int));
+        for (int j = 0; j < num_recursos; j++)
+            necessidade[num_clientes][j] = linha_max[j]; // need = max - alocado(0)
+
+        num_clientes++;
     }
-    free(line);
     fclose(f);
 
-    if (n_customers == 0) fail("file '%s' is empty", CUSTOMER_FILE, 0);
+    if (num_clientes == 0) erro("customer.txt esta vazio", 0);
 }
 
-static void read_commands(void) {
-    FILE *f = fopen(COMMANDS_FILE, "r");
-    char *line = NULL;
-    size_t cap = 0;
-    int line_no = 0, capacity = 0;
+void le_comandos() {
+    FILE *f = fopen("commands.txt", "r");
+    if (f == NULL) erro("nao consegui abrir o commands.txt", 0);
 
-    if (f == NULL) fail("could not open file '%s'", COMMANDS_FILE, 0);
+    char linha[TAM_LINHA];
+    int nlinha = 0;
 
-    while (getline(&line, &cap, f) != -1) {
-        char *tok, *save;
-        Command cmd;
-        int count = 0;
+    while (fgets(linha, TAM_LINHA, f) != NULL) {
+        nlinha++;
+        tira_quebra(linha);
+        if (linha_vazia(linha)) continue;
 
-        line_no++;
-        strip_newline(line);
-        if (is_blank(line)) continue;
+        Comando c;
+        char *tok = strtok(linha, " \t");
 
-        tok = strtok_r(line, " \t", &save);
         if (strcmp(tok, "*") == 0) {
-            if (strtok_r(NULL, " \t", &save) != NULL) {
-                free(line); fclose(f);
-                fail("invalid format in '%s': '*' must be alone in its line", COMMANDS_FILE, line_no);
-            }
-            cmd.type = CMD_PRINT;
-            cmd.customer = -1;
-            cmd.resources = NULL;
-        } else if (strcmp(tok, "RQ") == 0 || strcmp(tok, "RL") == 0) {
-            cmd.type = (strcmp(tok, "RQ") == 0) ? CMD_RQ : CMD_RL;
+            if (strtok(NULL, " \t") != NULL)
+                erro("no commands.txt o * tem que ficar sozinho na linha", nlinha);
+            c.tipo = '*';
+            c.cliente = -1;
+            c.valores = NULL;
+        }
+        else if (strcmp(tok, "RQ") == 0 || strcmp(tok, "RL") == 0) {
+            if (strcmp(tok, "RQ") == 0) c.tipo = 'Q';
+            else c.tipo = 'L';
 
-            tok = strtok_r(NULL, " \t", &save);
-            if (!parse_non_negative(tok, &cmd.customer)) {
-                free(line); fclose(f);
-                fail("invalid format in '%s': customer number must be a non-negative integer",
-                     COMMANDS_FILE, line_no);
-            }
-            if (cmd.customer >= n_customers) {
-                free(line); fclose(f);
-                fail("invalid customer in '%s': customer does not exist in " CUSTOMER_FILE,
-                     COMMANDS_FILE, line_no);
-            }
+            tok = strtok(NULL, " \t");
+            if (!eh_numero(tok))
+                erro("numero do cliente invalido no commands.txt", nlinha);
+            c.cliente = atoi(tok);
+            if (c.cliente >= num_clientes)
+                erro("cliente do commands.txt nao existe no customer.txt", nlinha);
 
-            cmd.resources = xmalloc(sizeof(int) * n_resources);
-            while ((tok = strtok_r(NULL, " \t", &save)) != NULL) {
-                if (count >= n_resources) { count++; break; }
-                if (!parse_non_negative(tok, &cmd.resources[count])) {
-                    free(cmd.resources); free(line); fclose(f);
-                    fail("invalid format in '%s': resources must be non-negative integers",
-                         COMMANDS_FILE, line_no);
-                }
-                count++;
+            c.valores = malloc(num_recursos * sizeof(int));
+            int qtd = 0;
+            tok = strtok(NULL, " \t");
+            while (tok != NULL) {
+                if (qtd == num_recursos) { qtd++; break; } // numero a mais
+                if (!eh_numero(tok))
+                    erro("recurso invalido no commands.txt, tem que ser inteiro >= 0", nlinha);
+                c.valores[qtd] = atoi(tok);
+                qtd++;
+                tok = strtok(NULL, " \t");
             }
-            if (count != n_resources) {
-                free(cmd.resources); free(line); fclose(f);
-                fail("number of resources in '%s' does not match the number of command line arguments",
-                     COMMANDS_FILE, line_no);
-            }
-        } else {
-            free(line); fclose(f);
-            fail("invalid format in '%s': unknown command (expected RQ, RL or *)",
-                 COMMANDS_FILE, line_no);
+            if (qtd != num_recursos)
+                erro("quantidade de recursos no commands.txt nao bate com a quantidade de argumentos", nlinha);
+        }
+        else {
+            erro("comando desconhecido no commands.txt (so vale RQ, RL ou *)", nlinha);
         }
 
-        if (n_commands == capacity) {
-            capacity = capacity ? capacity * 2 : 16;
-            commands = realloc(commands, sizeof(Command) * capacity);
-            if (!commands) fail("%s", "out of memory", 0);
-        }
-        commands[n_commands++] = cmd;
+        comandos = realloc(comandos, (num_comandos + 1) * sizeof(Comando));
+        comandos[num_comandos] = c;
+        num_comandos++;
     }
-    free(line);
     fclose(f);
 }
 
-/* ------------------------------------------------------------------ */
-/* Algoritmo do banqueiro                                              */
-/* ------------------------------------------------------------------ */
 
-/* Algoritmo de seguranca: retorna 1 se o estado atual e seguro */
-static int is_safe(void) {
-    int *work = xmalloc(sizeof(int) * n_resources);
-    int *finish = calloc(n_customers, sizeof(int));
-    int i, j, done = 0, progress = 1;
+// algoritmo de seguranca do livro
+int estado_seguro() {
+    int *work = malloc(num_recursos * sizeof(int));
+    int *terminou = calloc(num_clientes, sizeof(int));
+    for (int j = 0; j < num_recursos; j++) work[j] = disponivel[j];
 
-    if (!finish) { free(work); fail("%s", "out of memory", 0); }
-    memcpy(work, available, sizeof(int) * n_resources);
+    int cont = 0;
+    int achou = 1;
+    while (achou) {
+        achou = 0;
+        for (int i = 0; i < num_clientes; i++) {
+            if (terminou[i]) continue;
 
-    while (progress) {
-        progress = 0;
-        for (i = 0; i < n_customers; i++) {
-            if (finish[i]) continue;
-            for (j = 0; j < n_resources; j++)
-                if (need[i][j] > work[j]) break;
-            if (j == n_resources) { /* need[i] <= work */
-                for (j = 0; j < n_resources; j++) work[j] += allocation[i][j];
-                finish[i] = 1;
-                done++;
-                progress = 1;
+            int da = 1;
+            for (int j = 0; j < num_recursos; j++) {
+                if (necessidade[i][j] > work[j]) { da = 0; break; }
+            }
+            if (da) {
+                // o cliente i termina e devolve tudo
+                for (int j = 0; j < num_recursos; j++) work[j] += alocado[i][j];
+                terminou[i] = 1;
+                cont++;
+                achou = 1;
             }
         }
     }
     free(work);
-    free(finish);
-    return done == n_customers;
+    free(terminou);
+    return cont == num_clientes;
 }
 
-static void request_resources(FILE *out, int c, const int *req) {
-    int j;
-
-    /* 1. Request <= Need ? */
-    for (j = 0; j < n_resources; j++) {
-        if (req[j] > need[c][j]) {
+void pedido(FILE *out, int c, int *req) {
+    // pediu mais do que precisa
+    for (int j = 0; j < num_recursos; j++) {
+        if (req[j] > necessidade[c][j]) {
             fprintf(out, "The customer %d request ", c);
-            print_vector(out, req);
+            imprime_vetor(out, req);
             fprintf(out, " was denied because exceed its maximum allocation\n");
             return;
         }
     }
-    /* 2. Request <= Available ? */
-    for (j = 0; j < n_resources; j++) {
-        if (req[j] > available[j]) {
+    // nao tem recurso disponivel
+    for (int j = 0; j < num_recursos; j++) {
+        if (req[j] > disponivel[j]) {
             fprintf(out, "The resources ");
-            print_vector(out, available);
+            imprime_vetor(out, disponivel);
             fprintf(out, " are not enough to customer %d request ", c);
-            print_vector(out, req);
+            imprime_vetor(out, req);
             fprintf(out, "\n");
             return;
         }
     }
-    /* 3. Simula a alocacao e testa a seguranca */
-    for (j = 0; j < n_resources; j++) {
-        available[j] -= req[j];
-        allocation[c][j] += req[j];
-        need[c][j] -= req[j];
+    // finge que alocou e ve se fica seguro
+    for (int j = 0; j < num_recursos; j++) {
+        disponivel[j] -= req[j];
+        alocado[c][j] += req[j];
+        necessidade[c][j] -= req[j];
     }
-    if (is_safe()) {
+    if (estado_seguro()) {
         fprintf(out, "Allocate to customer %d the resources ", c);
-        print_vector(out, req);
+        imprime_vetor(out, req);
         fprintf(out, "\n");
-    } else { /* desfaz a simulacao */
-        for (j = 0; j < n_resources; j++) {
-            available[j] += req[j];
-            allocation[c][j] -= req[j];
-            need[c][j] += req[j];
+    } else {
+        // nao ficou seguro, desfaz
+        for (int j = 0; j < num_recursos; j++) {
+            disponivel[j] += req[j];
+            alocado[c][j] -= req[j];
+            necessidade[c][j] += req[j];
         }
         fprintf(out, "The customer %d request ", c);
-        print_vector(out, req);
+        imprime_vetor(out, req);
         fprintf(out, " was denied because result in an unsafe state\n");
     }
 }
 
-static void release_resources(FILE *out, int c, const int *rel) {
-    int j;
-    for (j = 0; j < n_resources; j++) {
-        if (rel[j] > allocation[c][j]) {
+void libera(FILE *out, int c, int *rel) {
+    // nao deixa liberar mais do que o cliente tem
+    for (int j = 0; j < num_recursos; j++) {
+        if (rel[j] > alocado[c][j]) {
             fprintf(out, "The customer %d release ", c);
-            print_vector(out, rel);
+            imprime_vetor(out, rel);
             fprintf(out, " was denied because exceed its allocation\n");
             return;
         }
     }
-    for (j = 0; j < n_resources; j++) {
-        available[j] += rel[j];
-        allocation[c][j] -= rel[j];
-        need[c][j] += rel[j];
+    for (int j = 0; j < num_recursos; j++) {
+        disponivel[j] += rel[j];
+        alocado[c][j] -= rel[j];
+        necessidade[c][j] += rel[j];
     }
     fprintf(out, "Release from customer %d the resources ", c);
-    print_vector(out, rel);
+    imprime_vetor(out, rel);
     fprintf(out, "\n");
 }
 
-static void print_state(FILE *out) {
-    int i;
+void imprime_estado(FILE *out) {
     fprintf(out, "MAXIMUM | ALLOCATION | NEED\n");
-    for (i = 0; i < n_customers; i++) {
-        print_vector(out, maximum[i]);
+    for (int i = 0; i < num_clientes; i++) {
+        imprime_vetor(out, maximo[i]);
         fprintf(out, " | ");
-        print_vector(out, allocation[i]);
+        imprime_vetor(out, alocado[i]);
         fprintf(out, " | ");
-        print_vector(out, need[i]);
+        imprime_vetor(out, necessidade[i]);
         fprintf(out, "\n");
     }
     fprintf(out, "AVAILABLE ");
-    print_vector(out, available);
+    imprime_vetor(out, disponivel);
     fprintf(out, "\n");
 }
 
+
 int main(int argc, char *argv[]) {
-    FILE *out;
-    int k;
+    // primeiro valida tudo, so depois cria o result.txt
+    le_argumentos(argc, argv);
+    le_clientes();
+    le_comandos();
 
-    /* Toda a entrada e validada antes de qualquer processamento */
-    parse_arguments(argc, argv);
-    read_customers();
-    read_commands();
+    FILE *out = fopen("result.txt", "w");
+    if (out == NULL) erro("nao consegui criar o result.txt", 0);
 
-    out = fopen(RESULT_FILE, "w");
-    if (out == NULL) fail("could not create file '%s'", RESULT_FILE, 0);
-
-    for (k = 0; k < n_commands; k++) {
-        switch (commands[k].type) {
-            case CMD_RQ:    request_resources(out, commands[k].customer, commands[k].resources); break;
-            case CMD_RL:    release_resources(out, commands[k].customer, commands[k].resources); break;
-            case CMD_PRINT: print_state(out); break;
-        }
+    for (int k = 0; k < num_comandos; k++) {
+        if (comandos[k].tipo == 'Q')
+            pedido(out, comandos[k].cliente, comandos[k].valores);
+        else if (comandos[k].tipo == 'L')
+            libera(out, comandos[k].cliente, comandos[k].valores);
+        else
+            imprime_estado(out);
     }
 
     fclose(out);
-    free_all();
-    return EXIT_SUCCESS;
+    return 0;
 }

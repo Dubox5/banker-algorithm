@@ -1,5 +1,5 @@
 EVIDENCIAS DE TESTE - Algoritmo do Banqueiro
-Data: Mon Nov 16 08:40:36 -03 2026
+Data: Mon Nov 16 10:36:45 -03 2026
 Sistema: Linux 6.6.87.2-microsoft-standard-WSL2 x86_64
 Compilador: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 ------------------------------------------------------------
@@ -28,133 +28,133 @@ The customer 2 request 0 1 0 was denied because exceed its maximum allocation
 ------------------------------------------------------------
 TESTE 2: Nenhum argumento
 $ ./banker 
-Error: usage: ./banker <instances of each resource> (e.g. ./banker 10 5 7)
+Erro: uso: ./banker <instancias de cada recurso>, ex: ./banker 10 5 7
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 3: Menos argumentos que recursos (2 em vez de 3)
 $ ./banker 10 5
-Error: number of resources in 'customer.txt' does not match the number of command line arguments (line 1)
+Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 4: Mais argumentos que recursos (4 em vez de 3)
 $ ./banker 10 5 7 3
-Error: number of resources in 'customer.txt' does not match the number of command line arguments (line 1)
+Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 5: Argumento nao numerico
 $ ./banker 10 abc 7
-Error: invalid argument 'abc': resource instances must be a non-negative integer
+Erro: argumento 'abc' invalido, tem que ser um inteiro >= 0
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 6: Argumento negativo
 $ ./banker 10 -5 7
-Error: invalid argument '-5': resource instances must be a non-negative integer
+Erro: argumento '-5' invalido, tem que ser um inteiro >= 0
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 7: customer.txt inexistente
 $ ./banker 10 5 7
-Error: could not open file 'customer.txt'
+Erro: nao consegui abrir o customer.txt
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 8: commands.txt inexistente
 $ ./banker 10 5 7
-Error: could not open file 'commands.txt'
+Erro: nao consegui abrir o commands.txt
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 9: customer.txt sem permissao de leitura
 $ ./banker 10 5 7
-Error: could not open file 'customer.txt'
+Erro: nao consegui abrir o customer.txt
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 10: commands.txt sem permissao de leitura
 $ ./banker 10 5 7
-Error: could not open file 'commands.txt'
+Erro: nao consegui abrir o commands.txt
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 11: customer.txt vazio
 $ ./banker 10 5 7
-Error: file 'customer.txt' is empty
+Erro: customer.txt esta vazio
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 12: customer.txt com cliente de 2 recursos
 $ ./banker 10 5 7
-Error: number of resources in 'customer.txt' does not match the number of command line arguments (line 2)
+Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 2)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 13: customer.txt com letra
 $ ./banker 10 5 7
-Error: invalid format in 'customer.txt': values must be non-negative integers separated by commas (line 1)
+Erro: formato invalido no customer.txt, era pra ser so numeros separados por virgula (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 14: customer.txt com campo vazio
 $ ./banker 10 5 7
-Error: number of resources in 'customer.txt' does not match the number of command line arguments (line 1)
+Erro: formato invalido no customer.txt, tem campo vazio (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 15: customer.txt sem virgulas
 $ ./banker 10 5 7
-Error: invalid format in 'customer.txt': values must be non-negative integers separated by commas (line 1)
+Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 16: customer.txt com linha vazia no meio
 $ ./banker 10 5 7
-Error: invalid format in 'customer.txt': empty line between customers (line 2)
+Erro: customer.txt tem linha vazia no meio dos clientes (linha 2)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 17: commands.txt com comando de 2 recursos
 $ ./banker 10 5 7
-Error: number of resources in 'commands.txt' does not match the number of command line arguments (line 1)
+Erro: quantidade de recursos no commands.txt nao bate com a quantidade de argumentos (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 18: commands.txt com comando desconhecido
 $ ./banker 10 5 7
-Error: invalid format in 'commands.txt': unknown command (expected RQ, RL or *) (line 1)
+Erro: comando desconhecido no commands.txt (so vale RQ, RL ou *) (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 19: commands.txt com cliente inexistente
 $ ./banker 10 5 7
-Error: invalid customer in 'commands.txt': customer does not exist in customer.txt (line 1)
+Erro: cliente do commands.txt nao existe no customer.txt (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 20: commands.txt com RQ sem parametros
 $ ./banker 10 5 7
-Error: invalid format in 'commands.txt': customer number must be a non-negative integer (line 1)
+Erro: numero do cliente invalido no commands.txt (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 21: commands.txt com recurso nao numerico
 $ ./banker 10 5 7
-Error: invalid format in 'commands.txt': resources must be non-negative integers (line 1)
+Erro: recurso invalido no commands.txt, tem que ser inteiro >= 0 (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 22: commands.txt com * seguido de texto
 $ ./banker 10 5 7
-Error: invalid format in 'commands.txt': '*' must be alone in its line (line 1)
+Erro: no commands.txt o * tem que ficar sozinho na linha (linha 1)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
 TESTE 23: Erro na linha 2: nada e processado
 $ ./banker 10 5 7
-Error: invalid format in 'commands.txt': unknown command (expected RQ, RL or *) (line 2)
+Erro: comando desconhecido no commands.txt (so vale RQ, RL ou *) (linha 2)
 [codigo de saida: 1]
 [result.txt NAO foi gerado]
 ------------------------------------------------------------
