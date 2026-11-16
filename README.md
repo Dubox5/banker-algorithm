@@ -1,24 +1,15 @@
-# Algoritmo do Banqueiro
-
-Trabalho de Infraestrutura de Software (CESAR School) - implementacao do algoritmo do banqueiro em C,
-baseado no livro Operating System Concepts (Silberschatz, 10a ed., pag. P-45).
-
 Eduardo Boxwell Simões - ebs2@cesar.school
 
-## Como compilar e rodar
-
-Precisa de gcc e make (testei no Ubuntu pelo WSL).
-
+Como compilar e rodar:
+Precisa de gcc e make (testei no Ubuntu pelo WSL)
 ```
 make
 ./banker 10 5 7
 ```
-
 Cada numero passado é a quantidade de instancias de um recurso. O programa le o `customer.txt` e o
-`commands.txt` da pasta e escreve a saida no `result.txt`. Pra apagar o executavel: `make clean`.
+`commands.txt` da pasta e escreve a saida no `result.txt`. Pra apagar o `make clean`
 
-## Entradas
-
+Entradas:
 `customer.txt` - cada linha é um cliente com o maximo que ele pode pedir de cada recurso, separado por virgula:
 
 ```
@@ -32,8 +23,7 @@ Cada numero passado é a quantidade de instancias de um recurso. O programa le o
 - `RL cliente r0 r1 ...` libera recursos
 - `*` imprime as matrizes (MAXIMUM, ALLOCATION, NEED) e o AVAILABLE
 
-## Erros
-
+Erros:
 O programa confere tudo antes de comecar. Se tiver algo errado ele mostra uma mensagem de erro
 (com a linha do arquivo quando da) e fecha sem criar o result.txt. Alguns casos que ele pega:
 - numero de argumentos diferente do numero de recursos dos arquivos
@@ -41,11 +31,9 @@ O programa confere tudo antes de comecar. Se tiver algo errado ele mostra uma me
 - customer.txt ou commands.txt que nao existe ou nao abre
 - arquivo vazio, letra no lugar de numero, campo vazio, linha vazia no meio
 - comando que nao é RQ/RL/*, cliente que nao existe, * com coisa depois
-
 Se o cliente tentar liberar mais do que tem, o pedido é negado e aparece no result.txt.
 
-## Testes
-
+Testes:
 O `testes.sh` roda varios casos (o do enunciado + varios de erro) e salva tudo no `evidencias.log`.
 Precisa do customer.txt, commands.txt e result_esperado.txt (saida do enunciado) na pasta.
 

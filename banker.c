@@ -1,34 +1,23 @@
-// Algoritmo do Banqueiro - Infra de Software
-// Eduardo Boxwell Simoes (ebs2)
-//
-// compilar: make
-// rodar: ./banker 10 5 7  (cada numero eh a qtd de instancias de um recurso)
-// le customer.txt e commands.txt e escreve tudo no result.txt
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define TAM_LINHA 1024
-
 int num_recursos = 0;
 int num_clientes = 0;
-
 int *disponivel;
 int **maximo;
 int **alocado;
 int **necessidade;
 
-// os comandos ficam guardados pra eu validar o arquivo todo antes de rodar
 typedef struct {
-    char tipo;   // 'Q' = RQ, 'L' = RL, '*' = imprime
+    char tipo;
     int cliente;
     int *valores;
 } Comando;
 
 Comando *comandos = NULL;
 int num_comandos = 0;
-
 
 void erro(char *msg, int linha) {
     if (linha > 0)
@@ -38,17 +27,15 @@ void erro(char *msg, int linha) {
     exit(1);
 }
 
-// 1 se a string tiver so digitos
 int eh_numero(char *s) {
     if (s == NULL || s[0] == '\0') return 0;
-    if (strlen(s) > 9) return 0; // numero grande demais, nao cabe no int
+    if (strlen(s) > 9) return 0;
     for (int i = 0; s[i] != '\0'; i++) {
         if (s[i] < '0' || s[i] > '9') return 0;
     }
     return 1;
 }
 
-// tira o \n (e o \r de arquivo feito no windows)
 void tira_quebra(char *s) {
     int n = strlen(s);
     while (n > 0 && (s[n-1] == '\n' || s[n-1] == '\r')) {
@@ -98,14 +85,12 @@ void le_clientes() {
         nlinha++;
         tira_quebra(linha);
 
-        // linha vazia so pode no final do arquivo
         if (linha_vazia(linha)) {
             teve_vazia = 1;
             continue;
         }
         if (teve_vazia) erro("customer.txt tem linha vazia no meio dos clientes", nlinha - 1);
 
-        // n recursos = n-1 virgulas
         int virgulas = 0;
         for (int i = 0; linha[i] != '\0'; i++)
             if (linha[i] == ',') virgulas++;
@@ -122,20 +107,18 @@ void le_clientes() {
             qtd++;
             tok = strtok(NULL, ",");
         }
-        // se tiver campo vazio tipo "7,,3" o strtok pula e vem menos numero
         if (qtd != num_recursos)
             erro("formato invalido no customer.txt, tem campo vazio", nlinha);
 
-        // aumenta as matrizes em 1 cliente
         maximo = realloc(maximo, (num_clientes + 1) * sizeof(int *));
         alocado = realloc(alocado, (num_clientes + 1) * sizeof(int *));
         necessidade = realloc(necessidade, (num_clientes + 1) * sizeof(int *));
 
         maximo[num_clientes] = linha_max;
-        alocado[num_clientes] = calloc(num_recursos, sizeof(int)); // comeca tudo zerado
+        alocado[num_clientes] = calloc(num_recursos, sizeof(int));
         necessidade[num_clientes] = malloc(num_recursos * sizeof(int));
         for (int j = 0; j < num_recursos; j++)
-            necessidade[num_clientes][j] = linha_max[j]; // need = max - alocado(0)
+            necessidade[num_clientes][j] = linha_max[j];
 
         num_clientes++;
     }
@@ -181,7 +164,7 @@ void le_comandos() {
             int qtd = 0;
             tok = strtok(NULL, " \t");
             while (tok != NULL) {
-                if (qtd == num_recursos) { qtd++; break; } // numero a mais
+                if (qtd == num_recursos) { qtd++; break; }
                 if (!eh_numero(tok))
                     erro("recurso invalido no commands.txt, tem que ser inteiro >= 0", nlinha);
                 c.valores[qtd] = atoi(tok);
@@ -203,7 +186,6 @@ void le_comandos() {
 }
 
 
-// algoritmo de seguranca do livro
 int estado_seguro() {
     int *work = malloc(num_recursos * sizeof(int));
     int *terminou = calloc(num_clientes, sizeof(int));
@@ -221,7 +203,6 @@ int estado_seguro() {
                 if (necessidade[i][j] > work[j]) { da = 0; break; }
             }
             if (da) {
-                // o cliente i termina e devolve tudo
                 for (int j = 0; j < num_recursos; j++) work[j] += alocado[i][j];
                 terminou[i] = 1;
                 cont++;
@@ -235,7 +216,6 @@ int estado_seguro() {
 }
 
 void pedido(FILE *out, int c, int *req) {
-    // pediu mais do que precisa
     for (int j = 0; j < num_recursos; j++) {
         if (req[j] > necessidade[c][j]) {
             fprintf(out, "The customer %d request ", c);
@@ -244,7 +224,6 @@ void pedido(FILE *out, int c, int *req) {
             return;
         }
     }
-    // nao tem recurso disponivel
     for (int j = 0; j < num_recursos; j++) {
         if (req[j] > disponivel[j]) {
             fprintf(out, "The resources ");
@@ -255,7 +234,6 @@ void pedido(FILE *out, int c, int *req) {
             return;
         }
     }
-    // finge que alocou e ve se fica seguro
     for (int j = 0; j < num_recursos; j++) {
         disponivel[j] -= req[j];
         alocado[c][j] += req[j];
@@ -266,7 +244,6 @@ void pedido(FILE *out, int c, int *req) {
         imprime_vetor(out, req);
         fprintf(out, "\n");
     } else {
-        // nao ficou seguro, desfaz
         for (int j = 0; j < num_recursos; j++) {
             disponivel[j] += req[j];
             alocado[c][j] -= req[j];
@@ -279,7 +256,6 @@ void pedido(FILE *out, int c, int *req) {
 }
 
 void libera(FILE *out, int c, int *rel) {
-    // nao deixa liberar mais do que o cliente tem
     for (int j = 0; j < num_recursos; j++) {
         if (rel[j] > alocado[c][j]) {
             fprintf(out, "The customer %d release ", c);
@@ -315,7 +291,6 @@ void imprime_estado(FILE *out) {
 
 
 int main(int argc, char *argv[]) {
-    // primeiro valida tudo, so depois cria o result.txt
     le_argumentos(argc, argv);
     le_clientes();
     le_comandos();

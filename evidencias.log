@@ -1,5 +1,5 @@
 EVIDENCIAS DE TESTE - Algoritmo do Banqueiro
-Data: Mon Nov 16 10:36:45 -03 2026
+Data: Mon Nov 16 11:30:54 -03 2026
 Sistema: Linux 6.6.87.2-microsoft-standard-WSL2 x86_64
 Compilador: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
 ------------------------------------------------------------
@@ -24,7 +24,7 @@ The resources 3 3 2 are not enough to customer 4 request 4 0 0
 Allocate to customer 1 the resources 1 0 2
 The customer 0 request 0 2 0 was denied because result in an unsafe state
 The customer 2 request 0 1 0 was denied because exceed its maximum allocation
-[COMPARACAO COM O RESULTADO ESPERADO: IDENTICO]
+[COMPARACAO COM O RESULTADO ESPERADO: DIFERENTE]
 ------------------------------------------------------------
 TESTE 2: Nenhum argumento
 $ ./banker 
