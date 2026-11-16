@@ -1,6 +1,4 @@
 # Algoritmo do Banqueiro
-Trabalho de Infraestrutura de Software (CESAR School) - algoritmo do banqueiro em C.
-
 Eduardo Boxwell Simões - ebs2@cesar.school
 
 Como compilar e rodar:
@@ -34,8 +32,6 @@ O programa confere tudo antes de comecar. Se tiver algo errado ele mostra uma me
 - customer.txt ou commands.txt que nao existe ou nao abre
 - arquivo vazio, letra no lugar de numero, campo vazio, linha vazia no meio
 - comando que nao é RQ/RL/*, cliente que nao existe, * com coisa depois
-
 Se o cliente tentar liberar mais do que tem, o pedido é negado e aparece no result.txt.
-
 Evidencias:
 O `evidencias.log` tem a saida dos testes que eu fiz: o caso do enunciado e varios casos de erro.
