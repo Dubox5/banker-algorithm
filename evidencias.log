@@ -1,12 +1,9 @@
-EVIDENCIAS DE TESTE - Algoritmo do Banqueiro
-Data: Mon Nov 16 11:38:02 -03 2026
-Sistema: Linux 6.6.87.2-microsoft-standard-WSL2 x86_64
-Compilador: gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
-------------------------------------------------------------
-TESTE 1: Execucao com a entrada do enunciado
+Evidencias - algoritmo do banqueiro (ebs2)
+testado no Ubuntu 24.04 pelo WSL, gcc 13.3
+
+== 1. exemplo do enunciado
 $ ./banker 10 5 7
-[codigo de saida: 0]
-[result.txt gerado:]
+(saiu com 0, result.txt:)
 Allocate to customer 0 the resources 0 2 1
 Allocate to customer 2 the resources 3 0 2
 Allocate to customer 1 the resources 2 0 0
@@ -24,166 +21,121 @@ The resources 3 3 2 are not enough to customer 4 request 4 0 0
 Allocate to customer 1 the resources 1 0 2
 The customer 0 request 0 2 0 was denied because result in an unsafe state
 The customer 2 request 0 1 0 was denied because exceed its maximum allocation
-[COMPARACAO COM O RESULTADO ESPERADO: DIFERENTE]
-------------------------------------------------------------
-TESTE 2: Nenhum argumento
-$ ./banker 
+(igual ao resultado do enunciado)
+
+-- erros nos argumentos --
+
+== 2. sem argumento
+$ ./banker
 Erro: uso: ./banker <instancias de cada recurso>, ex: ./banker 10 5 7
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 3: Menos argumentos que recursos (2 em vez de 3)
+(saiu com 1, nao criou result.txt)
+
+== 3. argumento a menos
 $ ./banker 10 5
 Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 4: Mais argumentos que recursos (4 em vez de 3)
+(saiu com 1, nao criou result.txt)
+
+== 4. argumento a mais
 $ ./banker 10 5 7 3
 Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 5: Argumento nao numerico
+(saiu com 1, nao criou result.txt)
+
+== 5. argumento com letra
 $ ./banker 10 abc 7
 Erro: argumento 'abc' invalido, tem que ser um inteiro >= 0
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 6: Argumento negativo
+(saiu com 1, nao criou result.txt)
+
+== 6. argumento negativo
 $ ./banker 10 -5 7
 Erro: argumento '-5' invalido, tem que ser um inteiro >= 0
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 7: customer.txt inexistente
+(saiu com 1, nao criou result.txt)
+
+-- arquivos --
+
+== 7. sem customer.txt
 $ ./banker 10 5 7
 Erro: nao consegui abrir o customer.txt
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 8: commands.txt inexistente
+(saiu com 1, nao criou result.txt)
+
+== 8. sem commands.txt
 $ ./banker 10 5 7
 Erro: nao consegui abrir o commands.txt
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 9: customer.txt sem permissao de leitura
-$ ./banker 10 5 7
-Erro: nao consegui abrir o customer.txt
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 10: commands.txt sem permissao de leitura
-$ ./banker 10 5 7
-Erro: nao consegui abrir o commands.txt
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 11: customer.txt vazio
+(saiu com 1, nao criou result.txt)
+
+-- customer.txt errado --
+
+== 9. customer.txt vazio
 $ ./banker 10 5 7
 Erro: customer.txt esta vazio
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 12: customer.txt com cliente de 2 recursos
+(saiu com 1, nao criou result.txt)
+
+== 10. cliente com 2 recursos (7,5,3 / 3,2)
 $ ./banker 10 5 7
 Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 2)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 13: customer.txt com letra
+(saiu com 1, nao criou result.txt)
+
+== 11. letra no lugar de numero (7,5,a)
 $ ./banker 10 5 7
 Erro: formato invalido no customer.txt, era pra ser so numeros separados por virgula (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 14: customer.txt com campo vazio
+(saiu com 1, nao criou result.txt)
+
+== 12. campo vazio (7,,3)
 $ ./banker 10 5 7
 Erro: formato invalido no customer.txt, tem campo vazio (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 15: customer.txt sem virgulas
+(saiu com 1, nao criou result.txt)
+
+== 13. sem virgula (7 5 3)
 $ ./banker 10 5 7
 Erro: quantidade de recursos no customer.txt nao bate com a quantidade de argumentos (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 16: customer.txt com linha vazia no meio
+(saiu com 1, nao criou result.txt)
+
+== 14. linha vazia no meio
 $ ./banker 10 5 7
 Erro: customer.txt tem linha vazia no meio dos clientes (linha 2)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 17: commands.txt com comando de 2 recursos
+(saiu com 1, nao criou result.txt)
+
+-- commands.txt errado --
+
+== 15. comando com 2 recursos (RQ 0 1 1)
 $ ./banker 10 5 7
 Erro: quantidade de recursos no commands.txt nao bate com a quantidade de argumentos (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 18: commands.txt com comando desconhecido
+(saiu com 1, nao criou result.txt)
+
+== 16. comando que nao existe (XX 0 1 1 1)
 $ ./banker 10 5 7
 Erro: comando desconhecido no commands.txt (so vale RQ, RL ou *) (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 19: commands.txt com cliente inexistente
+(saiu com 1, nao criou result.txt)
+
+== 17. cliente que nao existe (RQ 9 1 1 1)
 $ ./banker 10 5 7
 Erro: cliente do commands.txt nao existe no customer.txt (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 20: commands.txt com RQ sem parametros
+(saiu com 1, nao criou result.txt)
+
+== 18. RQ sozinho
 $ ./banker 10 5 7
 Erro: numero do cliente invalido no commands.txt (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 21: commands.txt com recurso nao numerico
+(saiu com 1, nao criou result.txt)
+
+== 19. letra no recurso (RQ 0 1 x 1)
 $ ./banker 10 5 7
 Erro: recurso invalido no commands.txt, tem que ser inteiro >= 0 (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 22: commands.txt com * seguido de texto
+(saiu com 1, nao criou result.txt)
+
+== 20. * com coisa depois (* 1)
 $ ./banker 10 5 7
 Erro: no commands.txt o * tem que ficar sozinho na linha (linha 1)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 23: Erro na linha 2: nada e processado
+(saiu com 1, nao criou result.txt)
+
+== 21. erro so na linha 2 (a linha 1 nao chega a rodar)
 $ ./banker 10 5 7
 Erro: comando desconhecido no commands.txt (so vale RQ, RL ou *) (linha 2)
-[codigo de saida: 1]
-[result.txt NAO foi gerado]
-------------------------------------------------------------
-TESTE 24: customer.txt com quebra de linha do Windows (CRLF) - deve funcionar
+(saiu com 1, nao criou result.txt)
+
+-- outros casos que tem que funcionar --
+
+== 22. liberar mais do que o cliente tem (RL 0 1 1 1)
 $ ./banker 10 5 7
-[codigo de saida: 0]
-[result.txt gerado:]
-Allocate to customer 0 the resources 0 2 1
-Allocate to customer 2 the resources 3 0 2
-Allocate to customer 1 the resources 2 0 0
-Allocate to customer 4 the resources 0 0 2
-Release from customer 0 the resources 0 1 1
-Allocate to customer 3 the resources 2 1 1
-MAXIMUM | ALLOCATION | NEED
-7 5 3 | 0 1 0 | 7 4 3
-3 2 2 | 2 0 0 | 1 2 2
-9 0 2 | 3 0 2 | 6 0 0
-2 2 2 | 2 1 1 | 0 1 1
-4 3 3 | 0 0 2 | 4 3 1
-AVAILABLE 3 3 2
-The resources 3 3 2 are not enough to customer 4 request 4 0 0
-Allocate to customer 1 the resources 1 0 2
-The customer 0 request 0 2 0 was denied because result in an unsafe state
-The customer 2 request 0 1 0 was denied because exceed its maximum allocation
-------------------------------------------------------------
-TESTE 25: Liberar mais do que o alocado
-$ ./banker 10 5 7
-[codigo de saida: 0]
-[result.txt gerado:]
+(saiu com 0, result.txt:)
 The customer 0 release 1 1 1 was denied because exceed its allocation
 MAXIMUM | ALLOCATION | NEED
 7 5 3 | 0 0 0 | 7 5 3
@@ -192,11 +144,10 @@ MAXIMUM | ALLOCATION | NEED
 2 2 2 | 0 0 0 | 2 2 2
 4 3 3 | 0 0 0 | 4 3 3
 AVAILABLE 10 5 7
-------------------------------------------------------------
-TESTE 26: Numero diferente de recursos (2) e clientes (2)
+
+== 23. so 2 recursos e 2 clientes
 $ ./banker 6 6
-[codigo de saida: 0]
-[result.txt gerado:]
+(saiu com 0, result.txt:)
 Allocate to customer 0 the resources 2 2
 Allocate to customer 1 the resources 1 1
 MAXIMUM | ALLOCATION | NEED
@@ -208,5 +159,3 @@ MAXIMUM | ALLOCATION | NEED
 5 5 | 0 0 | 5 5
 3 3 | 1 1 | 2 2
 AVAILABLE 5 5
-------------------------------------------------------------
-Total de testes: 26
