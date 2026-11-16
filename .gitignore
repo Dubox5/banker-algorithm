@@ -1,0 +1,8 @@
+# arquivos compilados
+banker
+*.o
+# arquivos fornecidos pelo professor / gerados na execucao
+customer.txt
+commands.txt
+result.txt
+result_esperado.txt
